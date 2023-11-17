@@ -49,7 +49,7 @@ public class LocationManager : MonoBehaviour
         await Location.StartAsync();
         ClientNetworkManager.instance.Connections["Lobby"].Send(new MapDataSend()
         {
-            StartStation="Saray",
+            StartStation = "Saray",
 
             Position = new Vector2((float)tempPosition.LatitudeLongitude.x, (float)tempPosition.LatitudeLongitude.y)
         });
@@ -77,7 +77,7 @@ public class LocationManager : MonoBehaviour
 
         ClientNetworkManager.instance.Connections["Lobby"].Send(new MsgMapDataRequest()
         {
-           
+
         });
 
 
@@ -100,9 +100,10 @@ public class LocationManager : MonoBehaviour
     }
 
     /* ------------------------------------------ */
-    
-    public async void SetMapValues()
+
+    public async void SetMapValues(float Longitute, float Lenght)
     {
+
     }
 
     /* ------------------------------------------ */
@@ -110,7 +111,7 @@ public class LocationManager : MonoBehaviour
     public async void MapDataResponse(InsightNetworkMessage connection)
     {
         MsgMapDataResponse message = connection.ReadMessage<MsgMapDataResponse>();
-        SetMapValues();
+        SetMapValues(message.Position.x, message.Position.y);
     }
 
     /* ------------------------------------------ */
