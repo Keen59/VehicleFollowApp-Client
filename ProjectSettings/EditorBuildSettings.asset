@@ -6,11 +6,8 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Plugins/Mapbox/Examples/0_PrefabScenes/Location-basedGame.unity
-    guid: 42f6aa7ce7a604f16ade319663f46ceb
-  - enabled: 0
-    path: Assets/vehicle-follow-app/Scenes/ServerScene.unity
-    guid: 5c034ceb4f7a2414189620c2d2b407c9
+    path: Assets/vehicle-follow-app/Scenes/ClientScene.unity
+    guid: 5323296f47d6a0d479737d8bb4fbbddc
   - enabled: 0
     path: Assets/vehicle-follow-app/Scenes/MapTest.unity
     guid: 2c7147d54825142878b256c67aae5704

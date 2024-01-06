@@ -4,6 +4,10 @@ using Cysharp.Threading.Tasks;
 using Mapbox.Unity.Location;
 using System;
 using Cysharp.Threading.Tasks.Triggers;
+using Mapbox.Utils;
+using Mapbox.Unity.Map;
+using Unity.VisualScripting;
+using Mapbox.Examples;
 
 public class LocationManager : MonoBehaviour
 {
@@ -12,11 +16,11 @@ public class LocationManager : MonoBehaviour
     #region Public-Serializable-Variables
 
     public static LocationManager instance;
-
-    public LocationProviderFactory Location;
-    public GameObject Map;
-    public GameObject MapCanvas;
-    public GameObject Canvas;
+    public ImmediatePositionWithLocationProvider Player;
+    public LocationProviderFactory LocationFactory;
+    ILocationProvider _location;
+    public AbstractMap Map;
+    public GameObject MapObj;
 
     public TimeSpan DelayTime;
 
@@ -31,9 +35,18 @@ public class LocationManager : MonoBehaviour
         instance = this;
     }
 
+    /* ------------------------------------------ */
+
     private void Start()
     {
-        DelayTime = TimeSpan.FromSeconds(5);
+        DelayTime = TimeSpan.FromSeconds(25);
+    }
+
+    /* ------------------------------------------ */
+
+    private void Update()
+    {
+
     }
 
     #endregion
@@ -44,29 +57,39 @@ public class LocationManager : MonoBehaviour
 
     public async UniTask MapShare()
     {
+        Debug.Log("Share");
 
-        Location tempPosition = Location.DeviceLocationProvider.CurrentLocation;
-        await Location.StartAsync();
-        ClientNetworkManager.instance.Connections["Lobby"].Send(new MapDataSend()
+        await LocationFactory.StartAsync();
+        ClientNetworkManager.instance.Connections["Lobby"].Send(new MsgLocationDataSendRequest()
         {
             StartStation = "Saray",
-
-            Position = new Vector2((float)tempPosition.LatitudeLongitude.x, (float)tempPosition.LatitudeLongitude.y)
+            PositionX = _location.CurrentLocation.LatitudeLongitude.x,
+            PositionY = _location.CurrentLocation.LatitudeLongitude.y,
         });
 
+        Debug.Log(_location.CurrentLocation.LatitudeLongitude.x+" "+            _location.CurrentLocation.LatitudeLongitude.y);
 
+        UIManager.Instance.UIMap.SetPosition(_location.CurrentLocation.LatitudeLongitude);
     }
 
     /* ------------------------------------------ */
 
-    public async void ShareLocationAction()
+    public async void SetLocationProvider(ILocationProvider location)
     {
+        _location = location;
+    }
+
+    /* ------------------------------------------ */
+
+    public async void ActShareLocation()
+    {
+        Debug.Log("Share");
+        Map.IsShared=true;
         while (true)
         {
             MapShare().Forget();
 
             await UniTask.Delay(DelayTime);
-
         }
     }
 
@@ -74,10 +97,13 @@ public class LocationManager : MonoBehaviour
 
     public async UniTask GetLocation()
     {
+        Map.IsShared = false;
 
-        ClientNetworkManager.instance.Connections["Lobby"].Send(new MsgMapDataRequest()
+        ClientNetworkManager.instance.Connections[ClientNetworkManager.instance.LobbyName].Send(new MsgLocationDataRequest()
         {
-
+            StartStation = "Saray",
+            StopStation = "Istanbul",
+            Date = DateTime.Now,
         });
 
 
@@ -85,41 +111,41 @@ public class LocationManager : MonoBehaviour
 
     /* ------------------------------------------ */
 
-    public async void GetLocationAction()
+    public async void ActGetLocation()
     {
-        Map.SetActive(true);
-        MapCanvas.SetActive(true);
-        Canvas.SetActive(false);
         while (true)
         {
             GetLocation().Forget();
 
             await UniTask.Delay(DelayTime);
-
         }
     }
 
     /* ------------------------------------------ */
 
-    public async void SetMapValues(float Longitute, float Lenght)
+    public async UniTask SetMapValues(Vector2d Location)
     {
-
+        Map.Initialize(Location,Map.AbsoluteZoom);
+        Map.UpdateMap(Location);
+      //  MapObj.GetComponent<InitializeMapWithLocationProvider>().IsLocationProvider = false;
+      //   ILocationProvider remoteProvider = LocationProviderFactory.Instance.RemoteLocationProvider;
+      // remoteProvider.SetCurrentLocation(Location);
     }
 
     /* ------------------------------------------ */
 
-    public async void MapDataResponse(InsightNetworkMessage connection)
+    public async void LocationDataResponse(InsightNetworkMessage connection)
     {
-        MsgMapDataResponse message = connection.ReadMessage<MsgMapDataResponse>();
-        SetMapValues(message.Position.x, message.Position.y);
+        MsgLocationDataResponse message = connection.ReadMessage<MsgLocationDataResponse>();
+        await SetMapValues(new Vector2d(message.PositionX, message.PositionY));
     }
 
     /* ------------------------------------------ */
 
 
-    public async void MapShareResponse(InsightNetworkMessage connection)
+    public async void LocationDataSendResponse(InsightNetworkMessage connection)
     {
-        MsgMapShareResponse message = connection.ReadMessage<MsgMapShareResponse>();
+        MsgLocationDataSendResponse message = connection.ReadMessage<MsgLocationDataSendResponse>();
         Debug.Log(message.Result);
     }
 

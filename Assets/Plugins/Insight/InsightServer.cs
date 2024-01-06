@@ -7,37 +7,42 @@ namespace Insight
 {
     public class InsightServer : InsightCommon
     {
-		public static InsightServer instance;
+        public static InsightServer instance;
 
         protected int serverHostId = -1; //-1 = never connected, 0 = disconnected, 1 = connected
-        protected Dictionary<int, InsightNetworkConnection> connections = new Dictionary<int, InsightNetworkConnection>();
-        protected List<SendToAllFinishedCallbackData> sendToAllFinishedCallbacks = new List<SendToAllFinishedCallbackData>();
+        public Dictionary<int, InsightNetworkConnection> connections = new Dictionary<int, InsightNetworkConnection>();
 
-		public override void Awake()
-		{
+        protected List<SendToAllFinishedCallbackData> sendToAllFinishedCallbacks =
+            new List<SendToAllFinishedCallbackData>();
+
+        public override void Awake()
+        {
             base.Awake();
-            if(DontDestroy){
-                if(instance != null && instance != this)
-				{
+            if (DontDestroy)
+            {
+                if (instance != null && instance != this)
+                {
                     Destroy(gameObject);
                     return;
                 }
+
                 instance = this;
                 DontDestroyOnLoad(this);
-            } else
-			{
+            }
+            else
+            {
                 instance = this;
             }
         }
-		
+
         public virtual void Start()
         {
             Application.runInBackground = true;
 
-            transport.OnServerConnected=HandleConnect;
-            transport.OnServerDisconnected=HandleDisconnect;
-            transport.OnServerDataReceived=HandleData;
-            transport.OnServerError=OnError;
+            transport.OnServerConnected = HandleConnect;
+            transport.OnServerDisconnected = HandleDisconnect;
+            transport.OnServerDataReceived = HandleData;
+            transport.OnServerError = OnError;
 
             if (AutoStart)
             {
@@ -66,6 +71,10 @@ namespace Insight
             connectState = ConnectState.Connected;
 
             OnStartInsight();
+        }
+
+        private void OnConnectedToServer()
+        {
         }
 
         public override void StopInsight()
@@ -120,7 +129,8 @@ namespace Insight
 
             if (callbacks.ContainsKey(callbackId))
             {
-                InsightNetworkMessage msg = new InsightNetworkMessage(insightNetworkConnection, callbackId) { msgType = msgType, reader = reader };
+                InsightNetworkMessage msg = new InsightNetworkMessage(insightNetworkConnection, callbackId)
+                    { msgType = msgType, reader = reader };
                 callbacks[callbackId].callback.Invoke(msg);
                 callbacks.Remove(callbackId);
 
@@ -170,6 +180,7 @@ namespace Insight
                 conn.SetHandlers(messageHandlers);
                 return true;
             }
+
             // already a connection with this id
             return false;
         }
@@ -179,7 +190,7 @@ namespace Insight
             return connections.Remove(connectionId);
         }
 
-        public bool SendToClient<T>(int connectionId, T msg, CallbackHandler callback = null) where T : Message
+        public bool SendToClient<T>(int connectionId, T msg, CallbackHandler callback = null) where T : NetworkMessage
         {
             if (transport.ServerActive())
             {
@@ -190,18 +201,22 @@ namespace Insight
                 if (callback != null)
                 {
                     callbackId = ++callbackIdIndex; // pre-increment to ensure that id 0 is never used.
-                    callbacks.Add(callbackId, new CallbackData() { callback = callback, timeout = Time.realtimeSinceStartup + callbackTimeout });
+                    callbacks.Add(callbackId,
+                        new CallbackData()
+                            { callback = callback, timeout = Time.realtimeSinceStartup + callbackTimeout });
                 }
+
                 writer.WriteInt(callbackId);
                 Writer<T>.write.Invoke(writer, msg);
 
                 return connections[connectionId].Send(writer.ToArray());
             }
+
             Debug.LogError("Server.Send: not connected!", this);
             return false;
         }
 
-        public bool SendToClient<T>(int connectionId, T msg) where T : Message
+        public bool SendToClient<T>(int connectionId, T msg) where T : NetworkMessage
         {
             return SendToClient(connectionId, msg, null);
         }
@@ -213,15 +228,18 @@ namespace Insight
                 transport.ServerSend(connectionId, new ArraySegment<byte>(data), 0);
                 return true;
             }
+
             Debug.LogError("Server.Send: not connected!", this);
             return false;
         }
 
-        public bool SendToAll<T>(T msg, CallbackHandler callback, SendToAllFinishedCallbackHandler finishedCallback) where T : Message
+        public bool SendToAll<T>(T msg, CallbackHandler callback, SendToAllFinishedCallbackHandler finishedCallback)
+            where T : Message
         {
             if (transport.ServerActive())
             {
-                SendToAllFinishedCallbackData finishedCallbackData = new SendToAllFinishedCallbackData() { requiredCallbackIds = new HashSet<int>() };
+                SendToAllFinishedCallbackData finishedCallbackData = new SendToAllFinishedCallbackData()
+                    { requiredCallbackIds = new HashSet<int>() };
 
                 foreach (KeyValuePair<int, InsightNetworkConnection> conn in connections)
                 {
@@ -237,8 +255,10 @@ namespace Insight
                     finishedCallbackData.timeout = Time.realtimeSinceStartup + callbackTimeout;
                     sendToAllFinishedCallbacks.Add(finishedCallbackData);
                 }
+
                 return true;
             }
+
             Debug.LogError("Server.Send: not connected!", this);
             return false;
         }
@@ -261,8 +281,10 @@ namespace Insight
                 {
                     conn.Value.Send(bytes);
                 }
+
                 return true;
             }
+
             Debug.LogError("Server.Send: not connected!", this);
             return false;
         }

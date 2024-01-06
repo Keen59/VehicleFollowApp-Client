@@ -4,24 +4,27 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public struct MsgMapDataRequest : NetworkMessage
-{
-  /*  public string StopStation;
-    public string StartStation;
-    public DateTime Date;*/
-}
-public struct MapDataSend : NetworkMessage
+public struct MsgLocationDataRequest : NetworkMessage
 {
     public string StopStation;
     public string StartStation;
     public DateTime Date;
-    public Vector2 Position;
 }
-public struct MsgMapDataResponse : NetworkMessage
+public struct MsgLocationDataResponse : NetworkMessage
 {
-    public Vector2 Position;
+    public double PositionX;
+    public double PositionY;
 }
-public struct MsgMapShareResponse : NetworkMessage
+
+public struct MsgLocationDataSendRequest : NetworkMessage
+{
+    public string StopStation;
+    public string StartStation;
+    public DateTime Date;
+    public double PositionX;
+    public double PositionY;
+}
+public struct MsgLocationDataSendResponse : NetworkMessage
 {
     public string Result;
 }

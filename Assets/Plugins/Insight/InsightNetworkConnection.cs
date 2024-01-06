@@ -15,12 +15,17 @@ namespace Insight
         public string address;
         public float lastMessageTime;
         public bool logNetworkMessages;
-        public bool isConnected { get { return hostId != -1; } }
+
+        public bool isConnected
+        {
+            get { return hostId != -1; }
+        }
 
         InsightClient client;
         InsightServer server;
 
-        public virtual void Initialize(InsightClient clientTransport, string networkAddress, int networkHostId, int networkConnectionId)
+        public virtual void Initialize(InsightClient clientTransport, string networkAddress, int networkHostId,
+            int networkConnectionId)
         {
             address = networkAddress;
             hostId = networkHostId;
@@ -28,7 +33,8 @@ namespace Insight
             client = clientTransport;
         }
 
-        public virtual void Initialize(InsightServer serverTransport, string networkAddress, int networkHostId, int networkConnectionId)
+        public virtual void Initialize(InsightServer serverTransport, string networkAddress, int networkHostId,
+            int networkConnectionId)
         {
             address = networkAddress;
             hostId = networkHostId;
@@ -52,7 +58,6 @@ namespace Insight
 
         protected virtual void Dispose(bool disposing)
         {
-
         }
 
         public void Disconnect()
@@ -82,6 +87,7 @@ namespace Insight
                 msgDelegate(message);
                 return true;
             }
+
             Debug.LogError("NetworkConnection InvokeHandler no handler for " + msgType);
             return false;
         }
@@ -94,6 +100,7 @@ namespace Insight
                 msgDelegate(netMsg);
                 return true;
             }
+
             return false;
         }
 
@@ -103,12 +110,29 @@ namespace Insight
             {
                 Debug.Log("NetworkConnection.RegisterHandler replacing " + msgType);
             }
+
             m_MessageHandlers[msgType] = handler;
         }
 
         public void UnregisterHandler(short msgType)
         {
             m_MessageHandlers.Remove(msgType);
+        }
+
+        public virtual bool Send<T>(T msg) where T : struct, NetworkMessage
+        {
+            // Debug.Log($"Server.SendToAll {typeof(T)}");
+            using (NetworkWriterPooled writer = NetworkWriterPool.Get())
+            {
+                // pack message only once
+                NetworkMessages.Pack(msg, writer);
+                // ArraySegment<byte> segment = writer.ToArraySegment();
+
+                if (isReady)
+                    return this.Send(writer.ToArray());
+            }
+
+            return false;
         }
 
         public virtual bool Send(byte[] bytes)
@@ -144,7 +168,8 @@ namespace Insight
 
             if (GetActiveInsight().UnpackMessage(reader, out int msgType))
             {
-                Debug.Log("ConnectionRecv " + this + " msgType:" + msgType + " content:" + BitConverter.ToString(data.Array, data.Offset, data.Count));
+                Debug.Log("ConnectionRecv " + this + " msgType:" + msgType + " content:" +
+                          BitConverter.ToString(data.Array, data.Offset, data.Count));
                 int callbackId = reader.ReadInt();
                 // try to invoke the handler for that message
                 InsightNetworkMessageDelegate msgDelegate;
@@ -178,12 +203,13 @@ namespace Insight
             {
                 return server.SendToClient(connectionId, bytes);
             }
+
             return false;
         }
 
         public InsightCommon GetActiveInsight()
         {
-            if(client != null)
+            if (client != null)
             {
                 return client;
             }
@@ -197,14 +223,17 @@ namespace Insight
     public class InsightNetworkMessage
     {
         public int msgType;
-        InsightNetworkConnection conn;
+        public InsightNetworkConnection conn;
         public NetworkReader reader;
         public int callbackId { get; protected set; }
-        public int connectionId { get { return conn.connectionId; } }
+
+        public int connectionId
+        {
+            get { return conn.connectionId; }
+        }
 
         public InsightNetworkMessage()
         {
-
         }
 
         public InsightNetworkMessage(InsightNetworkConnection conn)
@@ -230,8 +259,12 @@ namespace Insight
 
         public void Reply<T>(T msg) where T : NetworkMessage, new()
         {
+            if (ReferenceEquals(msg, null))
+                return;
+
             NetworkWriter writer = new NetworkWriter();
-            int msgType = conn.GetActiveInsight().GetId(default(NetworkMessage) != null ? typeof(NetworkMessage) : msg.GetType());
+            int msgType = conn.GetActiveInsight()
+                .GetId(default(NetworkMessage) != null ? typeof(NetworkMessage) : msg.GetType());
             writer.WriteUShort((ushort)msgType);
 
             writer.WriteInt(callbackId);

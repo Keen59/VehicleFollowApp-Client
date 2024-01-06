@@ -16,7 +16,7 @@ namespace Insight
 
         public Action ActClientConnected;
         public Action<InsightNetworkConnection> ActClientDisconnected;
-
+        
         public float ReconnectDelayInSeconds = 5f;
         float _reconnectTimer;
 		bool active;
@@ -36,10 +36,6 @@ namespace Insight
 			{
                 instance = this;
             }
-        }
-		
-        public virtual void Start()
-        {
             Application.runInBackground = true;
 
             clientID = 0;
@@ -51,6 +47,11 @@ namespace Insight
             transport.OnClientDataReceived=HandleBytes;
             transport.OnClientDisconnected=OnDisconnected;
             transport.OnClientError=OnError;
+
+        }
+		
+        public virtual void Start()
+        {
 
             if(AutoStart)
             {
@@ -122,10 +123,6 @@ namespace Insight
                 OnStopInsight();
             }
         }
-        public void OnClientConnected()
-        {
-            ActClientConnected?.Invoke();
-        }
 
         private void CheckConnection()
         {
@@ -180,20 +177,27 @@ namespace Insight
         {
         }
 
-        void OnConnected()
+        public void OnConnected()
         {
             if (insightNetworkConnection != null)
             {
-                Debug.Log("[InsightClient] - Connected to Insight Server");
+                Debug.Log("[InsightClient] - Connected to Insight Server "+networkAddress);
                 connectState = ConnectState.Connected;
                 OnClientConnected();
             }
             else Debug.LogError("Skipped Connect message handling because m_Connection is null.");
         }
+
+        public void OnClientConnected()
+        {
+            ActClientConnected?.Invoke();
+        }
+
         public void OnClientDisconnected(InsightClient client)
         {
             ActClientDisconnected?.Invoke(client.insightNetworkConnection);
         }
+        
         void OnDisconnected()
         {
             if(connectState != ConnectState.Disconnected){

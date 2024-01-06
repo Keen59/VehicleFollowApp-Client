@@ -6,6 +6,7 @@ using Insight;
 using Mapbox.Unity.Map;
 using Mapbox.Unity.Location;
 using Cysharp.Threading.Tasks;
+using System;
 
 public class ClientNetworkManager : MonoBehaviour
 {
@@ -17,13 +18,15 @@ public class ClientNetworkManager : MonoBehaviour
 
     public string LobbyName;
 
-
+    public UINetworkGroup UINetworkGroup;
+    
     /// <summary>  
     /// Client prefabini tutuyoruz burada  
     /// </summary>
     [Tooltip("Client Prefabýný yerleþtirmelisin yoksa client oluþmaz.")]
     public GameObject Prefab;
 
+    public string NetworkAdress;
     public ushort port;
 
     /// <summary>  
@@ -45,14 +48,14 @@ public class ClientNetworkManager : MonoBehaviour
 
     private void Start()
     {
-        test();
+        Connect();
     }
     #endregion
 
-    [ContextMenu("test")] //145.239.233.202
-    public void test()
+    [ContextMenu("test")] //145.239.233.202//3.77.201.144
+    public void Connect()
     {
-        InsightClient client = CreateConnection(LobbyName, "127.0.1.2", port);
+        InsightClient client = CreateConnection(LobbyName, NetworkAdress, port);
         client.StartInsight();
     }
 
@@ -68,7 +71,7 @@ public class ClientNetworkManager : MonoBehaviour
 
         TelepathyTransport transport = Client.GetComponent<TelepathyTransport>();
         transport.port = port;
-        Client.ActClientConnected = OnClientConnected;
+        Client.ActClientConnected = OnClientConnect;
         Client.ActClientDisconnected = OnClientDisconnected;
 
         Connections.Add(connectionName, Client);
@@ -80,24 +83,14 @@ public class ClientNetworkManager : MonoBehaviour
     /* ------------------------------------------ */
 
     #region Client
- 
-    
-    public void OnClientConnected()
+
+
+    public void OnClientConnect()
     {
         Debug.Log("Connectedd");
-         Connections[LobbyName].RegisterHandler<MsgMapShareResponse>(LocationManager.instance.MapShareResponse);
-
-        /* Connections[LobbyName].Send(new MsgUserLoginRequest
-         {
-             CryptedIDs = new[] { "aa", "aa", "aa" },
-             IDs = new[] { "kaan", "kaan", "kaan" }
-         });*/
-        /*   Connections[LobbyName].Send(new MsgUserLoginWithPassRequest()
-           {
-               DID = "444",
-               Password = "444",
-               Version = "0.0.3"
-           });*/
+        Connections[LobbyName].RegisterHandler<MsgLocationDataSendResponse>(LocationManager.instance.LocationDataSendResponse);
+        Connections[LobbyName].RegisterHandler<MsgLocationDataResponse>(LocationManager.instance.LocationDataResponse);
+        UINetworkGroup.Initialize();
     }
 
     /* ------------------------------------------ */
@@ -116,7 +109,7 @@ public class ClientNetworkManager : MonoBehaviour
 
     /* ------------------------------------------ */
 
-  
+
     #endregion
 
     /* ------------------------------------------ */
